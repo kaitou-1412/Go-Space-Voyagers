@@ -1,6 +1,6 @@
-module github.com/Deloitte-US/Go-Final-Assignment
+module github.com/kaitou-1412/Go-Space-Voyagers
 
-go 1.22.3
+go 1.22.4
 
 require (
 	github.com/gin-gonic/gin v1.9.1

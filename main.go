@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/Deloitte-US/Go-Final-Assignment/db"
-	"github.com/Deloitte-US/Go-Final-Assignment/routes"
 	"github.com/gin-gonic/gin"
+	"github.com/kaitou-1412/Go-Space-Voyagers/db"
+	"github.com/kaitou-1412/Go-Space-Voyagers/routes"
 )
 
 func main() {

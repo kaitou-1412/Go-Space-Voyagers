@@ -3,7 +3,7 @@ package models
 import (
 	"math"
 
-	"github.com/Deloitte-US/Go-Final-Assignment/db"
+	"github.com/kaitou-1412/Go-Space-Voyagers/db"
 )
 
 type Planet struct {

@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/Deloitte-US/Go-Final-Assignment/models"
 	"github.com/gin-gonic/gin"
+	"github.com/kaitou-1412/Go-Space-Voyagers/models"
 )
 
 // getPlanets retrieves all the planets and returns them as a JSON response.
@@ -29,7 +29,7 @@ func getPlanet(context *gin.Context) {
 	planet, err := models.GetPlanetByID(planetId)
 
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Could not fetch planet."})
+		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch planet."})
 		return
 	}
 
@@ -79,7 +79,7 @@ func createPlanet(context *gin.Context) {
 	err = planet.Save()
 
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Could not create planet. Try again later."})
+		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not create planet. Try again later."})
 		return
 	}
 
@@ -97,7 +97,7 @@ func updatePlanet(context *gin.Context) {
 	_, err = models.GetPlanetByID(planetId)
 
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Could not fetch the planet."})
+		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch the planet."})
 		return
 	}
 
@@ -141,7 +141,7 @@ func updatePlanet(context *gin.Context) {
 	updatedPlanet.ID = planetId
 	err = updatedPlanet.Update()
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Could not update planet."})
+		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not update planet."})
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "message": "Planet updated successfully!"})
@@ -158,14 +158,14 @@ func deletePlanet(context *gin.Context) {
 	planet, err := models.GetPlanetByID(planetId)
 
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Could not fetch the planet."})
+		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch the planet."})
 		return
 	}
 
 	err = planet.Delete()
 
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Could not delete the planet."})
+		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not delete the planet."})
 		return
 	}
 
@@ -187,7 +187,7 @@ func getFuelCost(context *gin.Context) {
 	planet, err := models.GetPlanetByID(planetId)
 
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Could not fetch planet."})
+		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch planet."})
 		return
 	}
 
