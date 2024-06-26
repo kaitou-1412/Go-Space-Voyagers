@@ -5,13 +5,15 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kaitou-1412/Go-Space-Voyagers/db"
 	"github.com/kaitou-1412/Go-Space-Voyagers/models"
 )
 
 // getPlanets retrieves all the planets and returns them as a JSON response.
 func getPlanets(context *gin.Context) {
-	planets, err := models.GetAllPlanets()
-	if err != nil {
+	var planets []models.Planet
+	result := db.DB.Find(&planets)
+	if result.Error != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Could not fetch planets. Try again later."})
 		return
 	}
@@ -26,9 +28,10 @@ func getPlanet(context *gin.Context) {
 		return
 	}
 
-	planet, err := models.GetPlanetByID(planetId)
+	var planet models.Planet
+	result := db.DB.Find(&planet, planetId)
 
-	if err != nil {
+	if result.Error != nil || planet.ID == 0 {
 		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch planet."})
 		return
 	}
@@ -76,9 +79,9 @@ func createPlanet(context *gin.Context) {
 		return
 	}
 
-	err = planet.Save()
+	result := db.DB.Create(&planet)
 
-	if err != nil {
+	if result.Error != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not create planet. Try again later."})
 		return
 	}
@@ -94,10 +97,11 @@ func updatePlanet(context *gin.Context) {
 		return
 	}
 
-	_, err = models.GetPlanetByID(planetId)
+	var planet models.Planet
+	result := db.DB.Find(&planet, planetId)
 
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch the planet."})
+	if result.Error != nil || planet.ID == 0 {
+		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch planet for given id."})
 		return
 	}
 
@@ -138,9 +142,9 @@ func updatePlanet(context *gin.Context) {
 		return
 	}
 
-	updatedPlanet.ID = planetId
-	err = updatedPlanet.Update()
-	if err != nil {
+	updatedPlanet.ID = uint(planetId)
+	result = db.DB.Model(&planet).Updates(updatedPlanet)
+	if result.Error != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not update planet."})
 		return
 	}
@@ -155,16 +159,17 @@ func deletePlanet(context *gin.Context) {
 		return
 	}
 
-	planet, err := models.GetPlanetByID(planetId)
+	var planet models.Planet
+	result := db.DB.Find(&planet, planetId)
 
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch the planet."})
+	if result.Error != nil || planet.ID == 0 {
+		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch planet for given id."})
 		return
 	}
 
-	err = planet.Delete()
+	result = db.DB.Delete(&models.Planet{}, planetId)
 
-	if err != nil {
+	if result.Error != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not delete the planet."})
 		return
 	}
@@ -184,10 +189,11 @@ func getFuelCost(context *gin.Context) {
 		return
 	}
 
-	planet, err := models.GetPlanetByID(planetId)
+	var planet models.Planet
+	result := db.DB.Find(&planet, planetId)
 
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch planet."})
+	if result.Error != nil || planet.ID == 0 {
+		context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Could not fetch planet for given id."})
 		return
 	}
 

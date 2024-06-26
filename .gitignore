@@ -1,2 +1,16 @@
-api.db
-go.sum
+*.o
+*.a
+*.so
+*.test
+*.prof
+*.out
+*.db
+
+vendor/
+tmp/
+
+# IDE specific files
+.vscode
+.idea
+
+.air.toml
