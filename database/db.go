@@ -1,4 +1,4 @@
-package db
+package database
 
 import (
 	"log"
@@ -14,7 +14,6 @@ var DB *gorm.DB
 func ConnectToDB() {
 	var err error
 	DB, err = gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
-	log.Println("db connected")
 	if err != nil {
 		log.Fatal("Could not connect to database.")
 	}
@@ -24,4 +23,8 @@ func ConnectToDB() {
 	if err != nil {
 		log.Fatal("Migration failure.")
 	}
+}
+
+func GetDB() (*gorm.DB) {
+	return DB
 }

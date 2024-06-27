@@ -8,12 +8,12 @@ import (
 
 type Planet struct {
 	gorm.Model
-	Name        string  `binding:"required"`
-	Description string  `binding:"required"`
-	Distance    int64   `binding:"required"`
-	Radius      float64 `binding:"required"`
-	Mass        float64
-	Type        PlanetType `binding:"required"`
+	Name        string  `binding:"required" json:"name"`
+	Description string  `binding:"required" json:"description"`
+	Distance    int64   `binding:"required" json:"distance"`
+	Radius      float64 `binding:"required" json:"radius"`
+	Mass        float64 `json:"mass"`
+	Type        PlanetType `binding:"required" json:"type"`
 }
 
 type PlanetType string
@@ -22,6 +22,16 @@ const (
 	GasGiant    PlanetType = "gas_giant"
 	Terrestrial PlanetType = "terrestrial"
 )
+
+var PlanetFilters = map[string]string{
+    "id": "int",
+    "name": "string",
+    "description": "string",
+    "distance": "int",
+    "radius": "float",
+    "mass": "float",
+	"type": "string",
+}
 
 // GetFuelCost calculates the fuel cost required to travel to the planet with the given crew capacity.
 func (planet Planet) GetFuelCost(crewCapacity int64) float64 {

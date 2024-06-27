@@ -2,14 +2,14 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/kaitou-1412/Go-Space-Voyagers/db"
+	"github.com/kaitou-1412/Go-Space-Voyagers/database"
 	"github.com/kaitou-1412/Go-Space-Voyagers/initialize"
 	"github.com/kaitou-1412/Go-Space-Voyagers/routes"
 )
 
 func init() {
 	initialize.LoadEnv()
-	db.ConnectToDB()
+	database.ConnectToDB()
 }
 
 func main() {
