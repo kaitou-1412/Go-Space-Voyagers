@@ -13,11 +13,8 @@ func init() {
 }
 
 func main() {
-	// Create a new Gin server instance with default middleware
 	server := gin.Default()
-
-	// Register the routes for the server
-	routes.RegisterRoutes(server)
-	// Run the server on port 8080
+	db := database.GetDB()
+	routes.RegisterRoutes(server, db)
 	server.Run()
 }

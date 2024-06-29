@@ -12,5 +12,5 @@ tmp/
 # IDE specific files
 .vscode
 .idea
-
+.env
 .air.toml
