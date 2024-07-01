@@ -75,28 +75,52 @@ func TestGetPlanets(t *testing.T) {
 		defer sqlDB.Close()
 	}
 
-	// Create a test request
-    w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/planets", nil)
-
-	// Serve the request
-    router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	var response struct {
-		Data  []models.Planet `json:"data"`
-		Status int    `json:"status"`
-		Total  int `json:"total"`
-		Page int `json:"page"`
-		Limit int `json:"limit"`
+	tests := []struct {
+		endpoint string
+		expectedStatus int
+		expectedName1 string
+		expectedTotal int
+	}{
+		{"/planets", http.StatusOK, "Jupiter", 2},
+		{"/planets?sort=radius", http.StatusOK, "Pluto", 2},
+		{`/planets?filter[type]={"eq": "gas_giant"}`, http.StatusOK, "Jupiter", 1},
+		{`/planets?filter[type]={"neq": "gas_giant"}`, http.StatusOK, "Pluto", 1},
+		{`/planets?filter[radius]={"gt": 8}`, http.StatusOK, "Jupiter", 1},
+		{`/planets?filter[radius]={"gte": 9}`, http.StatusOK, "Jupiter", 1},
+		{`/planets?filter[radius]={"lte": 9}`, http.StatusOK, "Jupiter", 2},
+		{`/planets?filter[radius]={"lt": 10}`, http.StatusOK, "Jupiter", 2},
+		{`/planets?filter[type]={"like": "gas"}`, http.StatusOK, "Jupiter", 1},
+		{`/planets?filter[type]={"in": ["gas_giant", "terrestrial"]}`, http.StatusOK, "Jupiter", 2},
+		{`/planets?filter[type]={"notin": ["gas_giant", "terrestrial"]}`, http.StatusOK, "", 0},
+		{`/planets?filter[type]={"like": 1}`, http.StatusBadRequest, "Jupiter", 0},
+		{`/planets?page=1&limit=1`, http.StatusOK, "Jupiter", 1},
+		{`/planets?page=abc&limit=abc`, http.StatusBadRequest, "", 0},
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-        t.Fatalf("Failed to unmarshal response: %v", err)
-    } 
 
-	assert.Equal(t, "Jupiter", response.Data[0].Name)
-	assert.Equal(t, "Pluto", response.Data[1].Name)
-	assert.Equal(t, 2, response.Total)
+	for _, test := range tests {
+		// Create a test request
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", test.endpoint, nil)
+	
+		// Serve the request
+		router.ServeHTTP(w, req)
+		assert.Equal(t, test.expectedStatus, w.Code)
+		var response struct {
+			Data  []models.Planet `json:"data"`
+			Status int    `json:"status"`
+			Total  int `json:"total"`
+			Page int `json:"page"`
+			Limit int `json:"limit"`
+		}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		} 
+		if len(response.Data) > 0 {
+			assert.Equal(t, test.expectedName1, response.Data[0].Name)
+		}
+		assert.Equal(t, test.expectedTotal, response.Total)
+	}
 
 }
 

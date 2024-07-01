@@ -13,6 +13,7 @@ import (
 func GetPlanetsHandler(db *gorm.DB) gin.HandlerFunc {
 	// getPlanets retrieves all the planets and returns them as a JSON response.
 	return func (context *gin.Context) {
+		oldDB := db
 		var params queryoperations.QueryParams
 		if err := params.BindQuery(context); err != nil {
 			context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": err.Error()})
@@ -23,11 +24,14 @@ func GetPlanetsHandler(db *gorm.DB) gin.HandlerFunc {
 		
 		var planets []models.Planet
 		result := db.Find(&planets)
-		
+
 		if result.Error != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Could not fetch planets. Try again later."})
 			return
 		}
+		
+		// restoring old db connection object without filters, sorting, pagination for future API calls
+		db = oldDB
 		
 		context.JSON(http.StatusOK, gin.H{
 			"status": http.StatusOK, 
