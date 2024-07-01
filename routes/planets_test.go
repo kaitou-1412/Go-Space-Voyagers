@@ -134,24 +134,42 @@ func TestGetPlanet(t *testing.T) {
 		defer sqlDB.Close()
 	}
 
-	// Create a test request
-    w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/planets/1", nil)
-
-	// Serve the request
-    router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	var response struct {
-		Data  models.Planet `json:"data"`
-		Status int    `json:"status"`
+	tests := []struct {
+		endpoint string
+		expectedStatus int
+		expectedName string
+		expectedErrorMessage string
+	}{
+		{"/planets/1", http.StatusOK, "Jupiter", ""},
+		{"/planets/3", http.StatusBadRequest, "", "Could not fetch planet."},
+		{"/planets/abc", http.StatusBadRequest, "", "Could not parse planet id."},
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-        t.Fatalf("Failed to unmarshal response: %v", err)
-    } 
 
-	assert.Equal(t, "Jupiter", response.Data.Name)
+	for _, test := range tests {
+		// Create a test request
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", test.endpoint, nil)
 
+		// Serve the request
+		router.ServeHTTP(w, req)
+		assert.Equal(t, test.expectedStatus, w.Code)
+		var response struct {
+			Data  models.Planet `json:"data"`
+			Message  string `json:"message"`
+			Status int    `json:"status"`
+		}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		} 
+
+		if response.Data.ID != 0 {
+			assert.Equal(t, test.expectedName, response.Data.Name)
+		} else {
+			assert.Equal(t, test.expectedErrorMessage, response.Message)
+		}
+	}
+	
 }
 
 func TestCreatePlanet(t *testing.T) {
@@ -164,35 +182,87 @@ func TestCreatePlanet(t *testing.T) {
 		defer sqlDB.Close()
 	}
 
-	body := gin.H{
-		"name": "Neptune",
-		"description": "The far away gassy planet",
-		"distance": 40,
-		"radius": 8,
-		"mass": 8,
-		"type": "gas_giant",
+	tests := []struct {
+		body gin.H
+		expectedStatus int
+		expectedName string
+		expectedMessage string
+	}{
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 40,
+			"radius": 8,
+			"mass": 8,
+			"type": "gas_giant",
+		}, http.StatusCreated, "Neptune", "Planet created!"},
+		{gin.H{
+			"nome": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 40,
+			"radius": 8,
+			"mass": 8,
+			"type": "gas_giant",
+		}, http.StatusBadRequest, "", "Could not parse request data."},
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 4000,
+			"radius": 8,
+			"mass": 8,
+			"type": "gas_giant",
+		}, http.StatusBadRequest, "", "Distance should be between 10 and 1000."},
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 400,
+			"radius": 20,
+			"mass": 8,
+			"type": "gas_giant",
+		}, http.StatusBadRequest, "", "Radius should be between 0.1 and 10."},
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 400,
+			"radius": 2,
+			"mass": 20,
+			"type": "terrestrial",
+		}, http.StatusBadRequest, "", "Mass should be between 0.1 and 10."},
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 400,
+			"radius": 2,
+			"mass": 8,
+			"type": "gas",
+		}, http.StatusBadRequest, "", "Invalid planet type."},
 	}
-	jsonBody, _ := json.Marshal(body)
 
+	for _, test := range tests {
 
-	// Create a test request
-    w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/planets", bytes.NewBuffer(jsonBody))
+		jsonBody, _ := json.Marshal(test.body)
 
-	// Serve the request
-    router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusCreated, w.Code)
-	var response struct {
-		Planet  models.Planet `json:"planet"`
-		Message  string `json:"message"`
-		Status int    `json:"status"`
+		// Create a test request
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/planets", bytes.NewBuffer(jsonBody))
+
+		// Serve the request
+		router.ServeHTTP(w, req)
+		assert.Equal(t, test.expectedStatus, w.Code)
+		var response struct {
+			Planet  models.Planet `json:"planet"`
+			Message  string `json:"message"`
+			Status int    `json:"status"`
+		}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		if test.expectedStatus == http.StatusCreated {
+			assert.Equal(t, test.expectedName, response.Planet.Name)
+		}
+		assert.Equal(t, test.expectedMessage, response.Message)
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-        t.Fatalf("Failed to unmarshal response: %v", err)
-    }
-	assert.Equal(t, "Neptune", response.Planet.Name)
-	assert.Equal(t, "Planet created!", response.Message)
 
 }
 
@@ -206,34 +276,98 @@ func TestUpdatePlanet(t *testing.T) {
 		defer sqlDB.Close()
 	}
 
-	body := gin.H{
-		"name": "Neptune",
-		"description": "The far away gassy planet",
-		"distance": 40,
-		"radius": 8,
-		"mass": 8,
-		"type": "gas_giant",
+	tests := []struct {
+		body gin.H
+		expectedStatus int
+		endpoint string
+		expectedMessage string
+	}{
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 40,
+			"radius": 8,
+			"mass": 8,
+			"type": "gas_giant",
+		}, http.StatusOK, "/planets/2", "Planet updated successfully!"},
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 40,
+			"radius": 8,
+			"mass": 8,
+			"type": "gas_giant",
+		}, http.StatusBadRequest, "/planets/3", "Could not fetch planet for given id."},
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 40,
+			"radius": 8,
+			"mass": 8,
+			"type": "gas_giant",
+		}, http.StatusBadRequest, "/planets/abc", "Could not parse planet id."},
+		{gin.H{
+			"nome": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 40,
+			"radius": 8,
+			"mass": 8,
+			"type": "gas_giant",
+		}, http.StatusBadRequest, "/planets/2", "Could not parse request data."},
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 4000,
+			"radius": 8,
+			"mass": 8,
+			"type": "gas_giant",
+		}, http.StatusBadRequest, "/planets/2", "Distance should be between 10 and 1000."},
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 400,
+			"radius": 20,
+			"mass": 8,
+			"type": "gas_giant",
+		}, http.StatusBadRequest, "/planets/2", "Radius should be between 0.1 and 10."},
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 400,
+			"radius": 2,
+			"mass": 20,
+			"type": "terrestrial",
+		}, http.StatusBadRequest, "/planets/2", "Mass should be between 0.1 and 10."},
+		{gin.H{
+			"name": "Neptune",
+			"description": "The far away gassy planet",
+			"distance": 400,
+			"radius": 2,
+			"mass": 8,
+			"type": "gas",
+		}, http.StatusBadRequest, "/planets/2", "Invalid planet type."},
 	}
-	jsonBody, _ := json.Marshal(body)
 
+	for _, test := range tests {
+		jsonBody, _ := json.Marshal(test.body)
 
-	// Create a test request
-    w := httptest.NewRecorder()
-	req, _ := http.NewRequest("PUT", "/planets/2", bytes.NewBuffer(jsonBody))
+		// Create a test request
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", test.endpoint, bytes.NewBuffer(jsonBody))
 
-	// Serve the request
-    router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	var response struct {
-		Message  string `json:"message"`
-		Status int    `json:"status"`
+		// Serve the request
+		router.ServeHTTP(w, req)
+		assert.Equal(t, test.expectedStatus, w.Code)
+		var response struct {
+			Message  string `json:"message"`
+			Status int    `json:"status"`
+		}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		assert.Equal(t, test.expectedMessage, response.Message)
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-        t.Fatalf("Failed to unmarshal response: %v", err)
-    }
-	assert.Equal(t, "Planet updated successfully!", response.Message)
-
 }
 
 func TestDeletePlanet(t *testing.T) {
@@ -246,23 +380,35 @@ func TestDeletePlanet(t *testing.T) {
 		defer sqlDB.Close()
 	}
 
-	// Create a test request
-    w := httptest.NewRecorder()
-	req, _ := http.NewRequest("DELETE", "/planets/2", nil)
-
-	// Serve the request
-    router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	var response struct {
-		Message  string `json:"message"`
-		Status int    `json:"status"`
+	tests := []struct {
+		endpoint string
+		expectedStatus int
+		expectedMessage string
+	}{
+		{"/planets/2", http.StatusOK, "Planet deleted successfully!"},
+		{"/planets/3", http.StatusBadRequest, "Could not fetch planet for given id."},
+		{"/planets/abc", http.StatusBadRequest, "Could not parse planet id."},
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-        t.Fatalf("Failed to unmarshal response: %v", err)
-    }
-	assert.Equal(t, "Planet deleted successfully!", response.Message)
 
+	for _, test := range tests {
+
+		// Create a test request
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("DELETE", test.endpoint, nil)
+
+		// Serve the request
+		router.ServeHTTP(w, req)
+		assert.Equal(t, test.expectedStatus, w.Code)
+		var response struct {
+			Message  string `json:"message"`
+			Status int    `json:"status"`
+		}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		assert.Equal(t, test.expectedMessage, response.Message)
+	}
 }
 
 func TestPlanetFuelCost(t *testing.T) {
@@ -275,24 +421,45 @@ func TestPlanetFuelCost(t *testing.T) {
 		defer sqlDB.Close()
 	}
 
-	body := gin.H{"Capacity": 10}
-	jsonBody, _ := json.Marshal(body)
-
-	// Create a test request
-    w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/planets/getFuelCost/2", bytes.NewBuffer(jsonBody))
-
-	// Serve the request
-    router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	var response struct {
-		Data  float64 `json:"data"`
-		Status int    `json:"status"`
+	tests := []struct {
+		endpoint string
+		body gin.H
+		expectedStatus int
+		expectedMessage string
+		expectedData float64
+	}{
+		{"/planets/getFuelCost/1", gin.H{"Capacity": 10}, http.StatusOK, "", 5.248800000000001e+06},
+		{"/planets/getFuelCost/2", gin.H{"Capacity": 10}, http.StatusOK, "", 2000.0},
+		{"/planets/getFuelCost/2", gin.H{"cap": 10}, http.StatusBadRequest, "Could not parse request data.", 2000.0},
+		{"/planets/getFuelCost/3", gin.H{"Capacity": 10}, http.StatusBadRequest, "Could not fetch planet for given id.", 0},
+		{"/planets/getFuelCost/abc", gin.H{"Capacity": 10}, http.StatusBadRequest, "Could not parse planet id.", 0},
 	}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-        t.Fatalf("Failed to unmarshal response: %v", err)
-    }
-	assert.Equal(t, 2000.0, response.Data)
+
+	for _, test := range tests {
+
+		jsonBody, _ := json.Marshal(test.body)
+
+		// Create a test request
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", test.endpoint, bytes.NewBuffer(jsonBody))
+
+		// Serve the request
+		router.ServeHTTP(w, req)
+		assert.Equal(t, test.expectedStatus, w.Code)
+		var response struct {
+			Data  float64 `json:"data"`
+			Message  string `json:"message"`
+			Status int    `json:"status"`
+		}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		if test.expectedStatus == http.StatusOK {
+			assert.Equal(t, test.expectedData, response.Data)
+		} else {
+			assert.Equal(t, test.expectedMessage, response.Message)
+		}
+	}
 
 }

@@ -76,10 +76,7 @@ func CreatePlanetHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if len(planet.Name) == 0 || len(planet.Description) == 0 {
-			context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Name and description are required."})
-			return
-		}
+		// future scope: add unique name check
 
 		if planet.Type == models.GasGiant {
 			planet.Mass = 5
@@ -141,10 +138,7 @@ func UpdatePlanetHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if len(updatedPlanet.Name) == 0 || len(updatedPlanet.Description) == 0 {
-			context.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Name and description are required."})
-			return
-		}
+		// future scope: add unique name check
 
 		if updatedPlanet.Type == models.GasGiant {
 			updatedPlanet.Mass = 5
