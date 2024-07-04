@@ -1,4 +1,23 @@
-# Go Final Assignment
+# Go Space Voyagers
+
+## Setup
+
+1. Clone this repository.
+2. Check go version and then install dependencies:
+   ```bash
+   go version
+   go mod tidy
+   ```
+3. Add port in a `.env` file.
+4. Run the server (You can also use `air` for live reloading):
+   ```bash
+   go run .
+   ```
+5. Run unit tests and check code coverage:
+   ```bash
+   go test ./... -coverprofile=coverage.out
+   go tool cover -html=coverage.out
+   ```
 
 ## API Endpoints
 
